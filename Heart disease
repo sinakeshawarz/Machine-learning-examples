@@ -1,0 +1,90 @@
+# Step 1: Install and Import Libraries
+# Uncomment the following line if running in an environment like Google Colab where the library may not be installed.
+# !pip install seaborn
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
+# Step 2: Load the Dataset from URL
+url = "https://archive.ics.uci.edu/static/public/45/data.csv"
+column_names = ["age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope", "ca", "thal", "num"]
+data = pd.read_csv(url, names=column_names)
+
+# Display the first few rows to confirm loading
+print("First few rows of the dataset:")
+print(data.head())
+
+# Step 3: Explore the Data
+print("\nDataset Information:")
+print(data.info())
+print("\nSummary Statistics:")
+print(data.describe())
+
+# Step 4: Data Preprocessing
+# Convert all columns to numeric, setting errors='coerce' to replace non-numeric values with NaN
+data = data.apply(pd.to_numeric, errors='coerce')
+
+# Verify data types after conversion
+print("\nData Types After Conversion:")
+print(data.dtypes)
+
+# Now fill NaN values with the median of each column
+data.fillna(data.median(), inplace=True)
+
+# Verify there are no missing values remaining
+print("\nMissing Values After Filling NaN with Medians:")
+print(data.isnull().sum())
+
+# Standardize numerical features to improve model performance
+scaler = StandardScaler()
+data[["age", "trestbps", "chol", "thalach", "oldpeak"]] = scaler.fit_transform(data[["age", "trestbps", "chol", "thalach", "oldpeak"]])
+
+# Step 5: Split the Data into Features and Target Variable
+X = data.drop("num", axis=1)  # Features
+y = data["num"]  # Target
+
+# Step 6: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 7: Model Training and Evaluation
+# Initialize the RandomForest model
+model = RandomForestClassifier(random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+print("\nAccuracy Score:", accuracy_score(y_test, y_pred))
+
+# Step 8: Feature Importance
+# Evaluate the importance of each feature in the model
+feature_importances = pd.DataFrame({'Feature': X.columns, 'Importance': model.feature_importances_})
+feature_importances = feature_importances.sort_values(by='Importance', ascending=False)
+
+print("\nFeature Importances:")
+print(feature_importances)
+
+# Plot feature importances
+plt.figure(figsize=(10, 6))
+sns.barplot(x="Importance", y="Feature", data=feature_importances)
+plt.title("Feature Importance")
+plt.show()
+
+# Step 9: Save Predictions
+# Save the model predictions to a CSV for analysis and review
+predictions = pd.DataFrame({"Actual": y_test, "Predicted": y_pred})
+predictions.to_csv("predictions.csv", index=False)
+print("\nPredictions saved to 'predictions.csv'")
